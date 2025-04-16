@@ -1,0 +1,9 @@
+{% extends 'layout/base.html' %}
+{% block title %} Trang chu {% endblock %}
+{% block content %}
+   <h1>Chào mừng đến với trang web!</h1>
+   <a href="{{ url_for('register') }}">Đăng ký</a> | 
+   <a href="{{ url_for('login') }}">Đăng nhập</a>
+   <a href="{{ url_for('logout') }}">Đăng xuất</a>
+
+{% endblock %}

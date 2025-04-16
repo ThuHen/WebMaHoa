@@ -1,0 +1,433 @@
+{% extends 'layout/base.html' %}
+{% block title %} Trang chu {% endblock %}
+{% block content %}
+{% if not current_user.is_authenticated %}
+<div class="container">
+	<h1>Chào mừng đến với trang web!</h1>
+	<p>Để sử dụng chức năng mã hóa và giải mã tệp, vui lòng <a href="{{ url_for('login') }}">Đăng nhập</a> hoặc <a href="{{ url_for('register') }}">Đăng ký</a>.</p>
+
+{%else%}
+<div class=container>
+	<div class="divTablefullwidth">
+		<div class="divTableBody">
+			<div class="divTableRow">
+				<div class="divTableCell" style="float: left;">
+					<h1>Web Browser Based File Encryption / Decryption</h1>
+					<h4></h4>
+				</div>
+				<div class="divTableCell" style="float: right;">
+					<h1>
+			
+					<button id="btnDivEncrypt" onClick="javascript:switchdiv('encrypt');">Encrypt a File</button>
+					<button id="btnDivDecrypt" onClick="javascript:switchdiv('decrypt');">Decrypt a File</button>
+					</h1>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+<div class=container>
+	<hr>
+</div>
+
+<div class="container" id=divEncryptfile>
+	<h2>Encrypt a File</h2>
+	<p>To encrypt a file, enter a password and drop the file to be encrypted into the dropzone below.  The file will then be encrypted using the password, then you'll be given an opportunity to save the encrypted file to your system.</p>
+
+	<div class="divTable">
+		<div class="divTableBody">
+			<div class="divTableRow">
+				<div class="divTableCell">Password</div>
+				<div class="divTableCell"><input id=txtEncpassphrase type=password size=30 onkeyup=javascript:encvalidate(); value=''></div>
+				<div class="divTableCell">(minumum length eight characters, make sure it strong!)</div>
+			</div>
+			<div class="divTableRow">
+				<div class="divTableCell">Password (retype)</div>
+				<div class="divTableCell"><input id=txtEncpassphraseretype type=password size=30 onkeyup=javascript:encvalidate(); value=''></div>
+				<div class="divTableCell"><span class=greenspan id=spnCheckretype></span></div>
+			</div>
+		</div>
+	</div>
+
+	<p> </p>
+
+	<div>
+		<div class=dropzone id="encdropzone" ondrop="drop_handler(event);" ondragover="dragover_handler(event);" ondragend="dragend_handler(event);">
+			<p>Drag and drop the file to be encrypted into this dropzone, or click <a onclick=javascript:encfileElem.click();>here</a> to select file.</p>
+			<p><span id=spnencfilename></span></p>
+		</div>
+		<input type="file" id="encfileElem" style="display:none" onchange="selectfile(this.files)">
+	</div>
+
+	<p> </p>
+
+	<div class="divTable">
+		<div class="divTableBody">
+			<div class="divTableRow">
+				<div class="divTableCell"><button id=btnEncrypt onclick=javascript:encryptfile(); disabled>Encrypt File</button></div>
+				<div class="divTableCell"><span id=spnEncstatus></span></div>
+			</div>
+		</div>
+	</div>
+
+	<p> </p>
+
+	<div>
+		<a id=aEncsavefile hidden><button>Save Encrypted File</button></a>
+	</div>
+
+	<p> </p>
+</div>
+
+<div class="container" id=divDecryptfile>
+	<h2>Decrypt a File</h2>
+	<p>Decrypt a file using the password that was previously used to encrypt the file.  After the file is decrypted, you'll be given an opportunity to save the decrypted file to your system.</p>
+
+	<div class="divTable">
+		<div class="divTableBody">
+			<div class="divTableRow">
+				<div class="divTableCell">Password</div>
+				<div class="divTableCell"><input id=txtDecpassphrase type=password size=30 onkeyup=javascript:decvalidate(); value=''></div>
+			</div>
+		</div>
+	</div>
+
+	<p> </p>
+
+	<div>
+			<div class=dropzone  id="decdropzone" ondrop="drop_handler(event);" ondragover="dragover_handler(event);" ondragend="dragend_handler(event);">
+				<p>Drag and drop file to be decrypted into this dropzone, or click <a role=button onclick=javascript:decfileElem.click();>here</a> to select file.</p>
+				<p><span id=spndecfilename></span></p>
+			</div>
+			<input type="file" id="decfileElem" style="display:none" onchange="selectfile(this.files)">
+	</div>
+
+	<p> </p>
+
+	<div class="divTable">
+		<div class="divTableBody">
+			<div class="divTableRow">
+				<div class="divTableCell"><button id=btnDecrypt onclick=javascript:decryptfile(); disabled>Decrypt File</button></div>
+				<div class="divTableCell"><span id=spnDecstatus></span></div>
+			</div>
+		</div>
+	</div>
+
+	<p> </p>
+
+	<div>
+		<a id=aDecsavefile hidden><button>Save Decrypted File</button></a>
+	</div>
+
+	<p> </p>
+</div>
+
+<BR>
+{%endif%}
+{% endblock %}
+{% block script %}
+
+<script type="text/javascript">
+	var mode=null;
+	var objFile=null;
+	switchdiv('encrypt');
+
+	function switchdiv(t) {
+		if(t=='encrypt') {
+			divEncryptfile.style.display='block';
+			divDecryptfile.style.display='none';
+			btnDivEncrypt.disabled=true;
+			btnDivDecrypt.disabled=false;
+			mode='encrypt';
+		} else if(t=='decrypt') {
+			divEncryptfile.style.display='none';
+			divDecryptfile.style.display='block';
+			btnDivEncrypt.disabled=false;
+			btnDivDecrypt.disabled=true;
+			mode='decrypt';
+		}
+	}
+
+// Kiểm tra độ dài mật khẩu (>= 8 ký tự)
+// Kiểm tra mật khẩu nhập lại có khớp không
+// Nếu đúng và đã có file => cho phép bấm nút "Encrypt File"
+	function encvalidate() {
+		if(txtEncpassphrase.value.length>=8 && txtEncpassphrase.value==txtEncpassphraseretype.value) { 
+		  spnCheckretype.classList.add("greenspan");
+		  spnCheckretype.classList.remove("redspan");
+		  spnCheckretype.innerHTML='&#10004;';
+		} else { 
+		  spnCheckretype.classList.remove("greenspan");
+		  spnCheckretype.classList.add("redspan");
+  		  spnCheckretype.innerHTML='&#10006;';
+		}
+
+		if( txtEncpassphrase.value.length>=8 && txtEncpassphrase.value==txtEncpassphraseretype.value && objFile ) { btnEncrypt.disabled=false; } else { btnEncrypt.disabled=true; }
+	}
+
+	// có mật khẩu và đã chọn file thì mới bật nút "Decrypt File".
+	function decvalidate() {
+		if( txtDecpassphrase.value.length>0 && objFile ) { btnDecrypt.disabled=false; } else { btnDecrypt.disabled=true; }
+	}
+
+	//drag and drop functions:
+	//Các hàm này để hỗ trợ kéo thả file vào vùng dropzone
+	//https://developer.mozilla.org/en-US/docs/Web/API/HTML_Drag_and_Drop_API/File_drag_and_drop
+	function drop_handler(ev) {
+		console.log("Drop");
+		ev.preventDefault();
+		// If dropped items aren't files, reject them
+		var dt = ev.dataTransfer;
+		if (dt.items) {
+			// Use DataTransferItemList interface to access the file(s)
+			for (var i=0; i < dt.items.length; i++) {
+				if (dt.items[i].kind == "file") {
+					var f = dt.items[i].getAsFile();
+					console.log("... file[" + i + "].name = " + f.name);
+					objFile=f;
+				}
+			}
+		} else {
+			// Use DataTransfer interface to access the file(s)
+			for (var i=0; i < dt.files.length; i++) {
+				console.log("... file[" + i + "].name = " + dt.files[i].name);
+			}  
+			objFile=file[0];
+		}		 
+		displayfile()
+		if(mode=='encrypt') { encvalidate(); } else if(mode=='decrypt') { decvalidate(); }
+	}
+
+	function dragover_handler(ev) {
+		console.log("dragOver");
+		// Prevent default select and drag behavior
+		ev.preventDefault();
+	}
+
+	function dragend_handler(ev) {
+		console.log("dragEnd");
+		// Remove all of the drag data
+		var dt = ev.dataTransfer;
+		if (dt.items) {
+			// Use DataTransferItemList interface to remove the drag data
+			for (var i = 0; i < dt.items.length; i++) {
+				dt.items.remove(i);
+			}
+		} else {
+			// Use DataTransfer interface to remove the drag data
+			ev.dataTransfer.clearData();
+		}
+	}
+	///////////
+	//click chọn file thủ công thay vì kéo thả.
+	function selectfile(Files) {
+		objFile=Files[0];
+		displayfile()
+		if(mode=='encrypt') { encvalidate(); } else if(mode=='decrypt') { decvalidate(); }
+	}
+
+	//Hiển thị tên file và kích thước file (tự động đổi đơn vị KB/MB...) vào dòng chữ ở dưới dropzone.
+	function displayfile() {
+		var s;
+		var sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+		var bytes=objFile.size;
+		var i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
+		if(i==0) { s=bytes + ' ' + sizes[i]; } else { s=(bytes / Math.pow(1024, i)).toFixed(2) + ' ' + sizes[i]; }
+
+		if(mode=='encrypt') { 
+			spnencfilename.textContent=objFile.name + ' (' + s + ')'; 
+		} else if(mode=='decrypt') {  
+			spndecfilename.textContent=objFile.name + ' (' + s + ')'; 
+		} 
+	}
+	//Đọc nội dung file và trả về dưới dạng ArrayBuffer (dạng byte để xử lý mã hóa/giải mã).
+	function readfile(file){
+		return new Promise((resolve, reject) => {
+			var fr = new FileReader();  
+			fr.onload = () => {
+				resolve(fr.result )
+			};
+			fr.readAsArrayBuffer(file);
+		});
+	}
+	//=============================
+	//Encrypt and decrypt functions:
+	//==============================
+	async function encryptfile() {
+	btnEncrypt.disabled = true; // Vô hiệu hóa nút để tránh bấm nhiều lần trong khi đang mã hóa
+
+	// Đọc nội dung file vào biến plaintextbytes dưới dạng byte (ArrayBuffer)
+	// sau đó chuyển thành Uint8Array để xử lý mã hóa.
+	var plaintextbytes = await readfile(objFile).catch(function(err) {
+		console.error(err);
+	});
+	var plaintextbytes = new Uint8Array(plaintextbytes); // Chuyển sang Uint8Array để phù hợp với Web Crypto API
+
+	// Thiết lập thông số PBKDF2:
+	var pbkdf2iterations = 10000; // Số vòng lặp để tăng độ bảo mật khi sinh key
+	var passphrasebytes = new TextEncoder("utf-8").encode(txtEncpassphrase.value); // Chuyển mật khẩu thành mảng byte
+	var pbkdf2salt = window.crypto.getRandomValues(new Uint8Array(8)); // Sinh giá trị salt ngẫu nhiên 8 byte
+
+	// Nhập passphrase (dưới dạng byte) vào hệ thống Web Crypto
+	var passphrasekey = await window.crypto.subtle.importKey(
+		'raw', passphrasebytes,
+		{name: 'PBKDF2'}, false, ['deriveBits']
+	).catch(function(err) {
+		console.error(err);
+	});
+	console.log('passphrasekey imported');
+
+	// Tạo 384 bit (48 byte) từ mật khẩu + salt qua PBKDF2
+	// Trong đó 32 byte đầu là key, 16 byte sau là IV
+	var pbkdf2bytes = await window.crypto.subtle.deriveBits({
+		name: 'PBKDF2',
+		salt: pbkdf2salt,
+		iterations: pbkdf2iterations,
+		hash: 'SHA-256'
+	}, passphrasekey, 384).catch(function(err) {
+		console.error(err);
+	});
+	console.log('pbkdf2bytes derived');
+
+	pbkdf2bytes = new Uint8Array(pbkdf2bytes); // Chuyển sang Uint8Array để chia tách
+	keybytes = pbkdf2bytes.slice(0, 32); // 32 byte đầu dùng làm AES key
+	ivbytes = pbkdf2bytes.slice(32);    // 16 byte sau làm IV (Initialization Vector)
+
+	// Nhập key AES vào Web Crypto để dùng cho mã hóa
+	var key = await window.crypto.subtle.importKey(
+		'raw', keybytes,
+		{name: 'AES-CBC', length: 256},
+		false, ['encrypt']
+	).catch(function(err) {
+		console.error(err);
+	});
+	console.log('key imported');
+
+	// Mã hóa dữ liệu bằng AES-CBC, sử dụng key và iv đã sinh
+	var cipherbytes = await window.crypto.subtle.encrypt(
+		{name: "AES-CBC", iv: ivbytes},
+		key,
+		plaintextbytes
+	).catch(function(err) {
+		console.error(err);
+	});
+
+	// Nếu quá trình mã hóa thất bại thì hiển thị lỗi
+	if (!cipherbytes) {
+		spnEncstatus.classList.add("redspan");
+		spnEncstatus.innerHTML = '<p>Error encrypting file. See console log.</p>';
+		return;
+	}
+	console.log('plaintext encrypted');
+
+	cipherbytes = new Uint8Array(cipherbytes); // Chuyển kết quả sang Uint8Array
+
+	// Ghép kết quả theo định dạng: "Salted__" + salt + ciphertext
+	// (Tương thích với chuẩn OpenSSL)
+	var resultbytes = new Uint8Array(cipherbytes.length + 16);
+	resultbytes.set(new TextEncoder("utf-8").encode('Salted__')); // 8 byte đầu là chuỗi 'Salted__'
+	resultbytes.set(pbkdf2salt, 8);                               // 8 byte tiếp là salt
+	resultbytes.set(cipherbytes, 16);                             // Phần còn lại là dữ liệu mã hóa
+
+	// Tạo blob từ mảng byte kết quả để có thể tải xuống
+	var blob = new Blob([resultbytes], {type: 'application/download'});
+	
+//==========================================================================================
+	// // Tạo FormData để gửi lên Cloudinary
+	// var formData = new FormData();
+	// formData.append("file", blob, objFile.name + ".enc"); // tên file có đuôi .enc
+	// formData.append("upload_preset", "your_upload_preset"); 
+
+	// // Gửi file lên Cloudinary bằng fetch
+	// fetch("https://api.cloudinary.com/v1_1/your_cloud_name/auto/upload", {
+	// 	method: "POST",
+	// 	body: formData
+	// })
+	// .then(response => response.json())
+	// .then(data => {
+	// 	console.log("✅ File uploaded:", data);
+	// 	spnEncstatus.classList.add("greenspan");
+	// 	spnEncstatus.innerHTML = `<p>File encrypted and uploaded.<br>URL: <a href="${data.secure_url}" target="_blank">${data.original_filename}</a></p>`;
+	// })
+	// .catch(err => {
+	// 	console.error("❌ Upload failed:", err);
+	// 	spnEncstatus.classList.add("redspan");
+	// 	spnEncstatus.innerHTML = "<p>Error uploading file.</p>";
+	// });
+//==========================================================================================
+	// var blobUrl = URL.createObjectURL(blob);
+	// aEncsavefile.href = blobUrl;                            // Gán URL tạm thời vào thẻ <a>
+	// aEncsavefile.download = objFile.name + '.enc';          // Đặt tên file tải về
+
+	// // Hiển thị trạng thái mã hóa thành công và cho phép tải file
+	// spnEncstatus.classList.add("greenspan");
+	// spnEncstatus.innerHTML = '<p>File encrypted.</p>';
+	// aEncsavefile.hidden = false;
+}
+
+	async function decryptfile() {
+		btnDecrypt.disabled=true;
+
+		var cipherbytes=await readfile(objFile)
+		.catch(function(err){
+			console.error(err);
+		});	
+		var cipherbytes=new Uint8Array(cipherbytes);
+
+		var pbkdf2iterations=10000;
+		var passphrasebytes=new TextEncoder("utf-8").encode(txtDecpassphrase.value);
+		var pbkdf2salt=cipherbytes.slice(8,16);
+
+
+		var passphrasekey=await window.crypto.subtle.importKey('raw', passphrasebytes, {name: 'PBKDF2'}, false, ['deriveBits'])
+		.catch(function(err){
+			console.error(err);
+
+		});
+		console.log('passphrasekey imported');
+
+		var pbkdf2bytes=await window.crypto.subtle.deriveBits({"name": 'PBKDF2', "salt": pbkdf2salt, "iterations": pbkdf2iterations, "hash": 'SHA-256'}, passphrasekey, 384)		
+		.catch(function(err){
+			console.error(err);
+		});
+		console.log('pbkdf2bytes derived');
+		pbkdf2bytes=new Uint8Array(pbkdf2bytes);
+
+		keybytes=pbkdf2bytes.slice(0,32);
+		ivbytes=pbkdf2bytes.slice(32);
+		cipherbytes=cipherbytes.slice(16);
+
+		var key=await window.crypto.subtle.importKey('raw', keybytes, {name: 'AES-CBC', length: 256}, false, ['decrypt']) 
+		.catch(function(err){
+			console.error(err);
+		});
+		console.log('key imported');		
+
+		var plaintextbytes=await window.crypto.subtle.decrypt({name: "AES-CBC", iv: ivbytes}, key, cipherbytes)
+		.catch(function(err){
+			console.error(err);
+		});
+
+		if(!plaintextbytes) {
+		 	spnDecstatus.classList.add("redspan");
+			spnDecstatus.innerHTML='<p>Error decrypting file.  Password may be incorrect.</p>';
+			return;
+		}
+
+		console.log('ciphertext decrypted');
+		plaintextbytes=new Uint8Array(plaintextbytes);
+
+		var blob=new Blob([plaintextbytes], {type: 'application/download'});
+		var blobUrl=URL.createObjectURL(blob);
+		aDecsavefile.href=blobUrl;
+		aDecsavefile.download=objFile.name + '.dec';
+
+	 	spnDecstatus.classList.add("greenspan");
+		spnDecstatus.innerHTML='<p>File decrypted.</p>';
+		aDecsavefile.hidden=false;
+	}
+
+</script>
+{% endblock %}
