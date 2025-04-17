@@ -1,13 +1,11 @@
 
 from flask import Flask, render_template, request, redirect, url_for, flash
-from flask_sqlalchemy import SQLAlchemy
-from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, login_user, logout_user, current_user, login_required
 import cloudinary.uploader
-from appmh import db, bcrypt, login_manager, app
-from appmh.models import User
+from appmh import  login_manager, app
 import cloudinary
 import appmh.untils as utils
+from flask import jsonify
 
 
     
@@ -16,7 +14,12 @@ import appmh.untils as utils
 
 @app.route('/')
 def home():
-    return render_template('home.html')
+
+    if current_user.is_authenticated:
+
+        return render_template('home.html',user_id=current_user.id)
+    else:
+        return render_template('home.html',user_id=None)
 
 # Trang đăng ký
 @app.route('/register', methods=['GET', 'POST'])
@@ -35,9 +38,6 @@ def register():
 
     return render_template('register.html',err_msg=err_msg)
 
-        
-
-    return render_template('register.html')
 
 # Trang đăng nhập
 @app.route('/login', methods=['GET', 'POST'])
@@ -49,8 +49,7 @@ def login():
         user=utils.check_login(username=username,password=password)
         if user:
             login_user(user)
-            next= request.args.get('next','home')
-            return redirect(url_for(next))
+            return redirect(url_for('home'))  # Chuyển hướng về trang chủ sau khi đăng nhập thành công
         else:
             err_msg='Username hoac password khong chinh xac!'
     return render_template('login.html', err_msg=err_msg)
@@ -67,6 +66,38 @@ def logout():
 @login_manager.user_loader
 def load_user(user_id):
     return utils.get_user_by_id(user_id=user_id)
+
+# Upload file mã hóa lên Cloudinary
+
+
+@app.route('/upload', methods=['POST'])
+@login_required
+def upload_file():
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': 'No file part'}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'message': 'No selected file'}), 400
+    
+    if file:
+        try:
+            # Upload file as "raw" (không phải ảnh)
+            upload_result = cloudinary.uploader.upload(
+                file,
+                folder=f"user_{current_user.id}",
+                resource_type="raw"
+            )
+            return jsonify({
+                'success': True,
+                'message': 'File uploaded successfully',
+                'url': upload_result['secure_url']
+            }), 200
+        except Exception as ex:
+            return jsonify({
+                'success': False,
+                'message': 'Error uploading file: ' + str(ex)
+            }), 500 
 
 
 if __name__ == '__main__':

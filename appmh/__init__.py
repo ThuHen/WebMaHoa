@@ -1,3 +1,4 @@
+import cloudinary
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
@@ -22,8 +23,13 @@ login_manager.login_view = 'login'  # Cấu hình trang đăng nhập khi ngư�
 login_manager.login_message_category = 'info'  # Cấu hình thông điệp khi người dùng chưa đăng nhập
 
 
-
-
+# Configuration
+cloudinary.config(
+    cloud_name = "dpm4nv09i",
+    api_key = "559583468352841",
+    api_secret = "S6U1gZmPA622tYhYFbQ-mp2g1H8", 
+    secure=True
+)
 
 
 

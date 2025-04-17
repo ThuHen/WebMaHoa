@@ -75,7 +75,7 @@
 	<p> </p>
 
 	<div>
-		<a id=aEncsavefile hidden><button>Save Encrypted File</button></a>
+		<a id=Encsavefile hidden><button>Save Encrypted File</button></a>
 	</div>
 
 	<p> </p>
@@ -125,6 +125,9 @@
 </div>
 
 <BR>
+<span id="spnEncstatus" class="thongbao"></span>
+<span id="spnDecstatus" class="thongbao"></span>
+
 {%endif%}
 {% endblock %}
 {% block script %}
@@ -194,7 +197,7 @@
 			for (var i=0; i < dt.files.length; i++) {
 				console.log("... file[" + i + "].name = " + dt.files[i].name);
 			}  
-			objFile=file[0];
+			objFile=dt.files[0];
 		}		 
 		displayfile()
 		if(mode=='encrypt') { encvalidate(); } else if(mode=='decrypt') { decvalidate(); }
@@ -252,6 +255,7 @@
 			fr.readAsArrayBuffer(file);
 		});
 	}
+	
 	//=============================
 	//Encrypt and decrypt functions:
 	//==============================
@@ -335,27 +339,33 @@
 	var blob = new Blob([resultbytes], {type: 'application/download'});
 	
 //==========================================================================================
-	// // Tạo FormData để gửi lên Cloudinary
-	// var formData = new FormData();
-	// formData.append("file", blob, objFile.name + ".enc"); // tên file có đuôi .enc
-	// formData.append("upload_preset", "your_upload_preset"); 
+	
+	const spnEncstatus = document.getElementById("spnEncstatus");
+	// Upload the encrypted file to the server
+	var formData = new FormData();
+	formData.append("file", blob, objFile.name + '.enc');
 
-	// // Gửi file lên Cloudinary bằng fetch
-	// fetch("https://api.cloudinary.com/v1_1/your_cloud_name/auto/upload", {
-	// 	method: "POST",
-	// 	body: formData
-	// })
-	// .then(response => response.json())
-	// .then(data => {
-	// 	console.log("✅ File uploaded:", data);
-	// 	spnEncstatus.classList.add("greenspan");
-	// 	spnEncstatus.innerHTML = `<p>File encrypted and uploaded.<br>URL: <a href="${data.secure_url}" target="_blank">${data.original_filename}</a></p>`;
-	// })
-	// .catch(err => {
-	// 	console.error("❌ Upload failed:", err);
-	// 	spnEncstatus.classList.add("redspan");
-	// 	spnEncstatus.innerHTML = "<p>Error uploading file.</p>";
-	// });
+	fetch('/upload', {
+    method: 'POST',
+    body: formData
+})
+	.then(response => response.json())
+	.then(data => {
+		if (data.success) {
+			spnEncstatus.classList.add("greenspan");
+			spnEncstatus.innerHTML = `<p>${data.message} <a href="${data.url}" target="_blank">Dowload File</a></p>`;
+			spnEncstatus.hidden = false;
+		} else {
+			spnEncstatus.classList.add("redspan");
+			spnEncstatus.innerHTML = `<p>${data.message}</p>`;
+		}
+	})
+	.catch(error => {
+		console.error('Error uploading file:', error);
+		spnEncstatus.classList.add("redspan");
+		spnEncstatus.innerHTML = '<p>Error uploading file to server.</p>';
+	});
+
 //==========================================================================================
 	// var blobUrl = URL.createObjectURL(blob);
 	// aEncsavefile.href = blobUrl;                            // Gán URL tạm thời vào thẻ <a>
@@ -369,6 +379,7 @@
 
 	async function decryptfile() {
 		btnDecrypt.disabled=true;
+		const spnDecstatus = document.getElementById("spnDecstatus");
 
 		var cipherbytes=await readfile(objFile)
 		.catch(function(err){
