@@ -218,6 +218,7 @@ block content %} {% if not current_user.is_authenticated %}
     var mode = null;
     var objFile = null;
     var objFileUrl = null;
+	 var objFileExtension = null;
     switchdiv("encrypt");
 
     async function loadFileList() {
@@ -372,7 +373,7 @@ block content %} {% if not current_user.is_authenticated %}
     function selecturlfile(File) {
       objFile = File;
       objFileUrl = objFile.file_url;
-    
+		objFileExtension = objFile.file_extension;
       displayfile();
     
       decvalidate();
@@ -410,10 +411,12 @@ block content %} {% if not current_user.is_authenticated %}
     //=============================
     //Encrypt and decrypt functions:
     //==============================
+
     async function encryptfile() {
       btnEncrypt.disabled = true; // Vô hiệu hóa nút để tránh bấm nhiều lần trong khi đang mã hóa
-      const originalFilename = objFile.name;
-      const originalExtension = originalFilename.split(".").pop();
+      const Filename = objFile.name;
+		const originalFilename = Filename.substring(0, Filename.lastIndexOf("."));
+      const originalExtension =  Filename.substring(Filename.lastIndexOf("."));
       // Đọc nội dung file vào biến plaintextbytes dưới dạng byte (ArrayBuffer)
       // sau đó chuyển thành Uint8Array để xử lý mã hóa.
       var plaintextbytes = await readfile(objFile).catch(function (err) {
@@ -525,15 +528,6 @@ block content %} {% if not current_user.is_authenticated %}
           spnEncstatus.innerHTML = "<p>Error uploading file to server.</p>";
         });
 
-      //==========================================================================================
-      // var blobUrl = URL.createObjectURL(blob);
-      // aEncsavefile.href = blobUrl;                            // Gán URL tạm thời vào thẻ <a>
-      // aEncsavefile.download = objFile.name + '.enc';          // Đặt tên file tải về
-
-      // // Hiển thị trạng thái mã hóa thành công và cho phép tải file
-      // spnEncstatus.classList.add("greenspan");
-      // spnEncstatus.innerHTML = '<p>File encrypted.</p>';
-      // aEncsavefile.hidden = false;
     }
     async function decryptfile() {
 		
@@ -621,91 +615,13 @@ block content %} {% if not current_user.is_authenticated %}
       const blob = new Blob([plaintextArray], { type: "application/download" });
       const blobUrl = URL.createObjectURL(blob);
       aDecsavefile.href = blobUrl;
-      aDecsavefile.download = selectedFileName + ".dec";
+      aDecsavefile.download = selectedFileName.replace(".enc", objFileExtension); // Đặt tên file khi tải xuống
 
       spnDecstatus.classList.add("greenspan");
       spnDecstatus.innerHTML = "<p>File decrypted.</p>";
       aDecsavefile.hidden = false;
     }
-    async function decryptfile() {
-      btnDecrypt.disabled = true;
-      const spnDecstatus = document.getElementById("spnDecstatus");
-
-      var cipherbytes = await readfile(objFile).catch(function (err) {
-        console.error(err);
-      });
-      var cipherbytes = new Uint8Array(cipherbytes);
-
-      var pbkdf2iterations = 10000;
-      var passphrasebytes = new TextEncoder("utf-8").encode(
-        txtDecpassphrase.value
-      );
-      var pbkdf2salt = cipherbytes.slice(8, 16);
-
-      var passphrasekey = await window.crypto.subtle
-        .importKey("raw", passphrasebytes, { name: "PBKDF2" }, false, [
-          "deriveBits",
-        ])
-        .catch(function (err) {
-          console.error(err);
-        });
-      console.log("passphrasekey imported");
-
-      var pbkdf2bytes = await window.crypto.subtle
-        .deriveBits(
-          {
-            name: "PBKDF2",
-            salt: pbkdf2salt,
-            iterations: pbkdf2iterations,
-            hash: "SHA-256",
-          },
-          passphrasekey,
-          384
-        )
-        .catch(function (err) {
-          console.error(err);
-        });
-      console.log("pbkdf2bytes derived");
-      pbkdf2bytes = new Uint8Array(pbkdf2bytes);
-
-      keybytes = pbkdf2bytes.slice(0, 32);
-      ivbytes = pbkdf2bytes.slice(32);
-      cipherbytes = cipherbytes.slice(16);
-
-      var key = await window.crypto.subtle
-        .importKey("raw", keybytes, { name: "AES-CBC", length: 256 }, false, [
-          "decrypt",
-        ])
-        .catch(function (err) {
-          console.error(err);
-        });
-      console.log("key imported");
-
-      var plaintextbytes = await window.crypto.subtle
-        .decrypt({ name: "AES-CBC", iv: ivbytes }, key, cipherbytes)
-        .catch(function (err) {
-          console.error(err);
-        });
-
-      if (!plaintextbytes) {
-        spnDecstatus.classList.add("redspan");
-        spnDecstatus.innerHTML =
-          "<p>Error decrypting file.  Password may be incorrect.</p>";
-        return;
-      }
-
-      console.log("ciphertext decrypted");
-      plaintextbytes = new Uint8Array(plaintextbytes);
-
-      var blob = new Blob([plaintextbytes], { type: "application/download" });
-      var blobUrl = URL.createObjectURL(blob);
-      aDecsavefile.href = blobUrl;
-      aDecsavefile.download = objFile.name + ".dec";
-
-      spnDecstatus.classList.add("greenspan");
-      spnDecstatus.innerHTML = "<p>File decrypted.</p>";
-      aDecsavefile.hidden = false;
-    }
+  
   </script>
   {% endblock %}
 </div>
