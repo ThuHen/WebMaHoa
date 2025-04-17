@@ -12,9 +12,11 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = '2gufit93fqhdjR34UIF84tuigrejv9y834rygrufjw'
 
 # Cấu hình cơ sở dữ liệu (MySQL)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:lethithuhenai@localhost/webmahoa?charset=utf8mb4'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # Tắt cảnh báo không cần thiết
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:lethithuhenai@localhost/webmahoa?charset=utf8mb4'
+# Cấu hình cơ sở dữ liệu (MySQL) cho AWS RDS
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://admin:lethithuhenai@databasewebmh.cfquieprbdtk.us-east-1.rds.amazonaws.com/webmahoa?charset=utf8mb4'
 
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # Tắt cảnh báo không cần thiết
 # Khởi tạo các thư viện
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
