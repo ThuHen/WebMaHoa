@@ -29,6 +29,7 @@ class File(db.Model):
     filename = db.Column(db.String(255), nullable=False)       # Tên file
     file_url = db.Column(db.String(500), nullable=False)       # Đường dẫn file hoặc URL
     file_extension = db.Column(db.String(10), nullable=False)  # Cột đuôi file
+    public_id = db.Column(db.String(255), nullable=False)         # ID công khai của file trên Cloudinary
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Liên kết với user
     def __str__(self):
         return self.filename

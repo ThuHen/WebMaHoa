@@ -14,7 +14,7 @@ block content %} {% if not current_user.is_authenticated %}
       <div class="divTableBody">
         <div class="divTableRow">
           <div class="divTableCell" style="float: left">
-            <h1>Web Browser Based File Encryption / Decryption</h1>
+            <h1>Web File Encryption / Decryption</h1>
             <h4></h4>
           </div>
           <div class="divTableCell" style="float: right">
@@ -179,7 +179,14 @@ block content %} {% if not current_user.is_authenticated %}
       <h6>Select file:</h6>
       <p><span id="spndecfilename"></span></p>
     </div>
-
+    <!-- Button to delete selected file -->
+    <button
+      id="deleteButton"
+      onclick="javascript:deletefile();"
+      style="display: none"
+    >
+      Delete Selected File
+    </button>
     <p></p>
 
     <div class="divTable">
@@ -217,9 +224,11 @@ block content %} {% if not current_user.is_authenticated %}
   <script type="text/javascript">
     var mode = null;
     var objFile = null;
+    var objFileId = null; // Lưu ID của file đã chọn
     var objFileUrl = null;
-	 var objFileExtension = null;
+    var objFileExtension = null;
     switchdiv("encrypt");
+    let selectedRow = null;
 
     async function loadFileList() {
       try {
@@ -233,27 +242,27 @@ block content %} {% if not current_user.is_authenticated %}
         files.forEach((file) => {
           const row = document.createElement("tr");
           row.innerHTML = `
-        <td>${file.filename}</td>
-      `;
+            <td>${file.filename}</td>
+          `;
           row.style.cursor = "pointer";
           row.dataset.url = file.file_url; // Lưu URL vào data-url
           row.dataset.filename = file.filename; // Lưu tên file vào data-filename
-
           row.addEventListener("click", () => {
             document.getElementById("spndecfilename").textContent =
               file.filename;
             selectedFileURL = file.file_url; // Lưu URL của file đã chọn
-            selectedFileName = file.filename; // Lưu tên file
+            selectedFileName = file.filename; // Lưu tên file đã chọn
+
+            // Hiển thị nút xóa
+            deleteButton.style.display = "inline-block";
+
             decvalidate(); // Kiểm tra điều kiện giải mã
           });
-
           selecturlfile(file);
-
           tbody.appendChild(row);
         });
       } catch (error) {
         console.error("Error loading file list:", error);
-
       }
     }
     function switchdiv(t) {
@@ -372,10 +381,16 @@ block content %} {% if not current_user.is_authenticated %}
     }
     function selecturlfile(File) {
       objFile = File;
+      objFileId = File.id;
       objFileUrl = objFile.file_url;
-		objFileExtension = objFile.file_extension;
+      objFileExtension = objFile.file_extension;
+
+      // console.log("objFile =", objFile);
+      // console.log("objFileId =", objFileId);
+      // console.log("objFileUrl =", objFileUrl);
+      // console.log("objFileExtension =", objFileExtension);
       displayfile();
-    
+
       decvalidate();
     }
 
@@ -407,7 +422,41 @@ block content %} {% if not current_user.is_authenticated %}
         fr.readAsArrayBuffer(file);
       });
     }
+    function deletefile() {
+      if (!objFileId) {
+        console.error("Error: File ID is not set.");
+        return;
+      }
 
+      // Gọi API xóa file trên server
+      fetch("/api/delete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ file_id: objFileId }),
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(
+              "Failed to delete file. Server responded with an error."
+            );
+          }
+          return response.json();
+        })
+        .then((data) => {
+          if (data.success) {
+            spndecfilename.textContent = ""; // Xóa tên file hiển thị
+            deleteButton.style.display = "none"; // Ẩn nút xóa
+            loadFileList(); // Tải lại danh sách file
+          } else {
+            console.error("Error deleting file:", data.message);
+          }
+        })
+        .catch((error) => {
+          console.error("Error deleting file:", error);
+        });
+    }
     //=============================
     //Encrypt and decrypt functions:
     //==============================
@@ -415,8 +464,8 @@ block content %} {% if not current_user.is_authenticated %}
     async function encryptfile() {
       btnEncrypt.disabled = true; // Vô hiệu hóa nút để tránh bấm nhiều lần trong khi đang mã hóa
       const Filename = objFile.name;
-		const originalFilename = Filename.substring(0, Filename.lastIndexOf("."));
-      const originalExtension =  Filename.substring(Filename.lastIndexOf("."));
+      const originalFilename = Filename.substring(0, Filename.lastIndexOf("."));
+      const originalExtension = Filename.substring(Filename.lastIndexOf("."));
       // Đọc nội dung file vào biến plaintextbytes dưới dạng byte (ArrayBuffer)
       // sau đó chuyển thành Uint8Array để xử lý mã hóa.
       var plaintextbytes = await readfile(objFile).catch(function (err) {
@@ -517,6 +566,7 @@ block content %} {% if not current_user.is_authenticated %}
           if (data.success) {
             spnEncstatus.classList.add("greenspan");
             spnEncstatus.innerHTML = `<p>${data.message} </p>`;
+            
           } else {
             spnEncstatus.classList.add("redspan");
             spnEncstatus.innerHTML = `<p>${data.message}</p>`;
@@ -527,10 +577,8 @@ block content %} {% if not current_user.is_authenticated %}
           spnEncstatus.classList.add("redspan");
           spnEncstatus.innerHTML = "<p>Error uploading file to server.</p>";
         });
-
     }
     async function decryptfile() {
-		
       btnDecrypt.disabled = true;
       const spnDecstatus = document.getElementById("spnDecstatus");
 
@@ -615,13 +663,15 @@ block content %} {% if not current_user.is_authenticated %}
       const blob = new Blob([plaintextArray], { type: "application/download" });
       const blobUrl = URL.createObjectURL(blob);
       aDecsavefile.href = blobUrl;
-      aDecsavefile.download = selectedFileName.replace(".enc", objFileExtension); // Đặt tên file khi tải xuống
+      aDecsavefile.download = selectedFileName.replace(
+        ".enc",
+        objFileExtension
+      ); // Đặt tên file khi tải xuống
 
       spnDecstatus.classList.add("greenspan");
       spnDecstatus.innerHTML = "<p>File decrypted.</p>";
       aDecsavefile.hidden = false;
     }
-  
   </script>
   {% endblock %}
 </div>

@@ -67,6 +67,24 @@ def logout():
 def load_user(user_id):
     return untils.get_user_by_id(user_id=user_id)
 
+@app.route('/api/files', methods=['GET'])
+@login_required
+def get_file_list():
+    try:
+        files = untils.get_files_by_user_id(current_user.id)
+        result = [{
+            'id': f.id,
+            'filename': f.filename,
+            'file_url': f.file_url,
+            'file_extension': f.file_extension
+        } for f in files] if files else []
+        return jsonify(result), 200
+    except Exception as e:
+        # Nếu cần log kỹ: import traceback; traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+    
+
 # Upload file mã hóa lên Cloudinary
 @app.route('/upload', methods=['POST'])
 @login_required
@@ -86,13 +104,16 @@ def upload_file():
             upload_result = cloudinary.uploader.upload(
                 file,
                 folder=f"user_{current_user.id}",
-                resource_type="raw"
+                resource_type="raw",
+                public_id=f"{file.filename}_{current_user.id}",
             )
             untils.add_file(
                 filename=file.filename,
                 file_url=upload_result['secure_url'],
                 file_extension=file_extension,
+                public_id=upload_result['public_id'],
                 user_id=current_user.id
+                
             )
             return jsonify({
                 'success': True,
@@ -105,24 +126,34 @@ def upload_file():
                 'message': 'Error uploading file: ' + str(ex)
             }), 500 
             
-@app.route('/api/files', methods=['GET'])
+@app.route("/api/delete", methods=["POST"])
 @login_required
-def get_file_list():
-    try:
-        files = untils.get_files_by_user_id(current_user.id)
-        result = [{
-            'id': f.id,
-            'filename': f.filename,
-            'file_url': f.file_url,
-            'file_extension': f.file_extension
-        } for f in files] if files else []
-        return jsonify(result), 200
-    except Exception as e:
-        # Nếu cần log kỹ: import traceback; traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+def delete_file():
+    data = request.get_json()
+    if not data:
+        return jsonify({"success": False, "message": "Invalid JSON payload"}), 400
+    file_id = data.get("file_id")
+    
+    if not file_id:
+        return jsonify({"success": False, "message": "Missing file_id"}), 400
 
-    
-    
+    file = untils.get_file_by_id(file_id=file_id)
+    if not file:
+        return jsonify({"success": False, "message": "File not found"}), 404
+
+    try:
+        # Xóa file khỏi Cloudinary nếu có public_id
+        if file.public_id:
+            cloudinary.uploader.destroy(file.public_id, resource_type="raw")
+
+        # Xóa khỏi database
+        if untils.delete_file(file):
+            return jsonify({"success": True, "message": "File deleted successfully"}), 200
+        else:
+            return jsonify({"success": False, "message": "Error deleting file from database"}), 500
+
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Unexpected error: {str(e)}"}), 500
 
 
 if __name__ == '__main__':

@@ -18,12 +18,13 @@ def add_user(username, password):
    else:
       return True
   
-def add_file(filename, file_url,file_extension, user_id):
+def add_file(filename, file_url,file_extension,public_id, user_id):
     try:
         new_file = File(
             filename=filename,
             file_url=file_url,
             file_extension=file_extension,
+            public_id=public_id,
             user_id=user_id
         )
         db.session.add(new_file)
@@ -46,3 +47,9 @@ def get_file_by_id(file_id):
     return File.query.get(int(file_id))
 def get_files_by_user_id(user_id):
     return File.query.filter_by(user_id=user_id).all()
+def delete_file(file):
+    if file:
+        db.session.delete(file)
+        db.session.commit()
+        return True
+    return False
