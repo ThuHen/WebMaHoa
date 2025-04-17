@@ -42,3 +42,7 @@ def check_login(username,password):
 
 def get_user_by_id(user_id):
     return User.query.get(int(user_id))
+def get_file_by_id(file_id):
+    return File.query.get(int(file_id))
+def get_files_by_user_id(user_id):
+    return File.query.filter_by(user_id=user_id).all()
