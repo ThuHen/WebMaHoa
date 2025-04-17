@@ -28,9 +28,11 @@ class File(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     filename = db.Column(db.String(255), nullable=False)       # Tên file
     file_url = db.Column(db.String(500), nullable=False)       # Đường dẫn file hoặc URL
+    file_extension = db.Column(db.String(10), nullable=False)  # Cột đuôi file
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Liên kết với user
     def __str__(self):
         return self.filename
+    
 # Tạo bảng trong cơ sở dữ liệu nếu chưa tồn tại
 if __name__ == '__main__':
     with app.app_context():  # Đưa ứng dụng vào ngữ cảnh

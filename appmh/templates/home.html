@@ -261,7 +261,8 @@
 	//==============================
 	async function encryptfile() {
 	btnEncrypt.disabled = true; // Vô hiệu hóa nút để tránh bấm nhiều lần trong khi đang mã hóa
-
+	const originalFilename = objFile.name;
+	const originalExtension = originalFilename.split('.').pop();
 	// Đọc nội dung file vào biến plaintextbytes dưới dạng byte (ArrayBuffer)
 	// sau đó chuyển thành Uint8Array để xử lý mã hóa.
 	var plaintextbytes = await readfile(objFile).catch(function(err) {
@@ -343,8 +344,8 @@
 	const spnEncstatus = document.getElementById("spnEncstatus");
 	// Upload the encrypted file to the server
 	var formData = new FormData();
-	formData.append("file", blob, objFile.name + '.enc');
-
+	formData.append("file", blob, originalFilename + '.enc');
+	formData.append("file_extension", originalExtension); // Gửi kèm đuôi gốc
 	fetch('/upload', {
     method: 'POST',
     body: formData
@@ -353,8 +354,8 @@
 	.then(data => {
 		if (data.success) {
 			spnEncstatus.classList.add("greenspan");
-			spnEncstatus.innerHTML = `<p>${data.message} <a href="${data.url}" target="_blank">Dowload File</a></p>`;
-			spnEncstatus.hidden = false;
+			spnEncstatus.innerHTML = `<p>${data.message} </p>`;
+			
 		} else {
 			spnEncstatus.classList.add("redspan");
 			spnEncstatus.innerHTML = `<p>${data.message}</p>`;

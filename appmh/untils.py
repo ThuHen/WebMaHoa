@@ -1,7 +1,5 @@
-import os
-import hashlib
 from appmh import app, db, bcrypt
-from appmh.models import  User
+from appmh.models import  User, File
 from flask_login import current_user
 
 
@@ -20,7 +18,20 @@ def add_user(username, password):
    else:
       return True
   
-   
+def add_file(filename, file_url,file_extension, user_id):
+    try:
+        new_file = File(
+            filename=filename,
+            file_url=file_url,
+            file_extension=file_extension,
+            user_id=user_id
+        )
+        db.session.add(new_file)
+        db.session.commit()
+        return True, "File added to database successfully."
+    except Exception as e:
+        db.session.rollback()
+        return False, f"Error adding file to database: {str(e)}"
 
 def check_login(username,password):
    user = User.query.filter_by(username=username).first()

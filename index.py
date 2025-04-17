@@ -4,7 +4,7 @@ from flask_login import LoginManager, login_user, logout_user, current_user, log
 import cloudinary.uploader
 from appmh import  login_manager, app
 import cloudinary
-import appmh.untils as utils
+import appmh.untils as untils
 from flask import jsonify
 
 
@@ -30,7 +30,7 @@ def register():
         password = request.form.get('password')
         
         try:
-            utils.add_user(username=username,password=password)
+            untils.add_user(username=username,password=password)
             return redirect(url_for('user_signin'))
             
         except Exception as ex:
@@ -46,7 +46,7 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        user=utils.check_login(username=username,password=password)
+        user=untils.check_login(username=username,password=password)
         if user:
             login_user(user)
             return redirect(url_for('home'))  # Chuyển hướng về trang chủ sau khi đăng nhập thành công
@@ -65,7 +65,7 @@ def logout():
 # Cấu hình Flask-Login
 @login_manager.user_loader
 def load_user(user_id):
-    return utils.get_user_by_id(user_id=user_id)
+    return untils.get_user_by_id(user_id=user_id)
 
 # Upload file mã hóa lên Cloudinary
 
@@ -77,6 +77,8 @@ def upload_file():
         return jsonify({'success': False, 'message': 'No file part'}), 400
     
     file = request.files['file']
+    file_extension = request.form.get('file_extension')
+
     if file.filename == '':
         return jsonify({'success': False, 'message': 'No selected file'}), 400
     
@@ -87,6 +89,12 @@ def upload_file():
                 file,
                 folder=f"user_{current_user.id}",
                 resource_type="raw"
+            )
+            untils.add_file(
+                filename=file.filename,
+                file_url=upload_result['secure_url'],
+                file_extension=file_extension,
+                user_id=current_user.id
             )
             return jsonify({
                 'success': True,
