@@ -4,11 +4,12 @@ from appmh import app, db
 from flask_login import UserMixin
 from flask import Flask
 
-# app = Flask(__name__)
+#app = Flask(__name__)
 
-# app.config['SECRET_KEY'] = '2gufit93fqhdjR34UIF84tuigrejv9y834rygrufjw'
-# app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:lethithuhenai@localhost/webmahoa?charset=utf8mb4'
-# app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # Tắt cảnh báo không cần thiết
+#app.config['SECRET_KEY'] = '2gufit93fqhdjR34UIF84tuigrejv9y834rygrufjw'
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Bang6822%40@localhost/webmahoa?charset=utf8mb4'
+#app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # Tắt cảnh báo không cần thiết
+#
 # db = SQLAlchemy(app)
 
 
