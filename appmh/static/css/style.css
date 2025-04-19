@@ -1,68 +1,121 @@
-
-
 body {
-    font-family: 'Helvetica', 'Arial', 'sans-serif'; 
-  color: rgb(37, 37, 95);
-  font-size: 11pt;		
- }
- 
- a, a:link, a:visited, a:active {
-  color: blue;
+  font-family: 'Segoe UI', 'Helvetica', 'Arial', sans-serif;
+  background-color: #fff8f6; /* nền hồng pastel nhẹ */
+  color: #4b3e4d; /* tím nhạt từ logo */
+  font-size: 12pt;
+  margin: 0;
+  padding: 0;
+}
+
+a, a:link, a:visited, a:active {
+  color: #a076b2; /* tím pastel */
+  text-decoration: none;
+  font-weight: 500;
+}
+
+a:hover {
+  cursor: pointer;
+  color: #d17c8c; /* hồng đậm hơn */
   text-decoration: underline;
- }
- 
- a:hover {
-  cursor:pointer;
-  color: red;
- }
- 
- .black10pointcourier {
-    font-family: 'courier'; 
-  color: black;
-  font-size: 10pt;		
- }
- 
- .container {
-  width: 80%;
+}
+
+.black10pointcourier {
+  font-family: 'Courier New', monospace;
+  color: #333;
+  font-size: 10pt;
+}
+
+.container {
+  width: 90%;
+  max-width: 960px;
   margin: 0 auto;
- }
- 
- .dropzone {
-  border: 10px dashed gray;
-  width: 20%;
-  padding: 2% 2% 5% 2%;
+  padding: 20px;
+  background-color: #ffffff;
+  box-shadow: 0 8px 16px rgba(215, 184, 184, 0.2);
+  border-radius: 12px;
+}
+
+.dropzone {
+  border: 3px dashed #d9b3b3;
+  background-color: #fff0f5;
+  color: #996666;
+  width: 60%;
+  padding: 30px;
   text-align: center;
-  margin: 5px 0 5px 0;
- }
- 
- .divTablefullwidth{
+  margin: 20px auto;
+  border-radius: 10px;
+  transition: background-color 0.3s ease;
+}
+
+.dropzone:hover {
+  background-color: #fdebed;
+}
+
+.divTablefullwidth {
   display: table;
   width: 100%;
- }
- 
- .divTable{
-  display: table;
- }
- 
- .divTableRow {
-  display: table-row;
- }
- .divTableCell {
-  display: table-cell;
-  padding: 3px 3px;
- }
- .divTableBody {
-  display: table-row-group;
- }
- 
- .greenspan {
-  color: green;	  
- }
- 
- .redspan {
-  color: red;	  
- }
- .selected {
-  background-color: #f2f2f2; /* Màu nền khi hàng được chọn */
-  font-weight: bold; /* Làm đậm chữ */
 }
+
+.divTable {
+  display: table;
+  margin-top: 1rem;
+  width: 100%;
+}
+
+.divTableRow {
+  display: table-row;
+}
+
+.divTableCell {
+  display: table-cell;
+  padding: 10px 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.divTableBody {
+  display: table-row-group;
+}
+
+.greenspan {
+  color: #4CAF50; /* xanh lá pastel */
+  font-weight: 500;
+}
+
+.redspan {
+  color: #e57373; /* đỏ pastel */
+  font-weight: 500;
+}
+
+.selected {
+  background-color: #fbeaea;
+  font-weight: bold;
+  border-left: 4px solid #e7a2a2;
+}
+
+.mode-switch-btn {
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 10px;
+  border: none;
+  margin: 4px;
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+  transition: all 0.3s ease;
+}
+
+.mode-switch-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(79, 70, 229, 0.4);
+}
+
+.mode-switch-btn:disabled {
+  background: #d1d5db;
+  color: #6b7280;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+
