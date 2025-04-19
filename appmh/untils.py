@@ -1,7 +1,13 @@
 from appmh import app, db, bcrypt
 from appmh.models import  User, File
 from flask_login import current_user
+from Crypto.Cipher import AES
+from Crypto.Protocol.KDF import PBKDF2
+from Crypto.Random import get_random_bytes
 
+# Khóa và IV cố định (ví dụ: khóa 32 byte và IV 16 byte)
+FIXED_KEY = b"thisisaverysecurekey12345678901234"  # 32 byte khóa cố định
+FIXED_IV = b"thisisaninitialvector"  # 16 byte IV cố định
 
 def add_user(username, password):
     # Mã hóa mật khẩu
@@ -53,3 +59,55 @@ def delete_file(file):
         db.session.commit()
         return True
     return False
+# Định nghĩa passphrase cố định
+FIXED_PASSPHRASE = "myfixedsecretpassphrase"
+def encrypt_file(plaintext: bytes) -> bytes:
+    salt = get_random_bytes(8)  # 8 byte salt
+    key_iv = PBKDF2(FIXED_PASSPHRASE, salt, dkLen=48, count=10000)  # 32 byte key + 16 byte IV
+    key = key_iv[:32]
+    iv = key_iv[32:]
+
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    
+    # Padding kiểu PKCS#7
+    pad_len = 16 - (len(plaintext) % 16)
+    padded = plaintext + bytes([pad_len] * pad_len)
+
+    encrypted = cipher.encrypt(padded)
+    return b"Salted__" + salt + encrypted  # Chuẩn OpenSSL: b"Salted__" + salt + ciphertext
+
+pbkdf2iterations = 10000  # Số vòng lặp của PBKDF2
+def decrypt_file(cipherbytes: bytes):
+    # Đảm bảo dữ liệu đầu vào là bytes
+    if not isinstance(cipherbytes, bytes):
+        raise ValueError("Input must be a bytes object.")
+
+    # Kiểm tra nếu dữ liệu có ít nhất 16 byte để chứa "Salted__"
+    if len(cipherbytes) < 16:
+        raise ValueError("File không hợp lệ. Dữ liệu quá ngắn để chứa header.")
+
+    # Bỏ qua phần header "Salted__" (8 byte) và lấy salt (8 byte tiếp theo)
+    pbkdf2salt = cipherbytes[8:16]
+
+    # Tạo passphrase key từ passphrase cố định
+    passphrasebytes = FIXED_PASSPHRASE.encode()
+
+    # Dùng PBKDF2 để tạo key (32 byte) và IV (16 byte)
+    key_iv = PBKDF2(passphrasebytes, pbkdf2salt, dkLen=48, count=pbkdf2iterations)
+    key = key_iv[:32]
+    iv = key_iv[32:]
+
+    # Tạo cipher AES với key và IV
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+
+    # Lấy ciphertext (dữ liệu mã hóa) từ phần còn lại của file
+    ciphertext = cipherbytes[16:]  # Bỏ qua phần header "Salted__" đầu tiên
+
+    # Giải mã dữ liệu
+    decrypted = cipher.decrypt(ciphertext)
+
+    # Loại bỏ padding kiểu PKCS#7
+    pad_len = decrypted[-1]
+    plaintext = decrypted[:-pad_len]
+
+    return plaintext

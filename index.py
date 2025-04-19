@@ -1,13 +1,15 @@
 
-from flask import Flask, render_template, request, redirect, url_for, flash
-from flask_login import LoginManager, login_user, logout_user, current_user, login_required
+from flask import render_template, request, redirect, send_file, url_for, jsonify
+from flask_login import  login_user, logout_user, current_user, login_required
 import cloudinary.uploader
-from appmh import  login_manager, app
+from appmh import login_manager, app
 import cloudinary
 import appmh.untils as untils
-from flask import jsonify
-
-
+import os
+from io import BytesIO
+import cloudinary.uploader
+import requests
+# pip install pycryptodome
     
 
 # Trang chủ (home)
@@ -83,48 +85,6 @@ def get_file_list():
         # Nếu cần log kỹ: import traceback; traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
-    
-
-# Upload file mã hóa lên Cloudinary
-@app.route('/upload', methods=['POST'])
-@login_required
-def upload_file():
-    if 'file' not in request.files:
-        return jsonify({'success': False, 'message': 'No file part'}), 400
-    
-    file = request.files['file']
-    file_extension = request.form.get('file_extension')
-
-    if file.filename == '':
-        return jsonify({'success': False, 'message': 'No selected file'}), 400
-    
-    if file:
-        try:
-            # Upload file as "raw" (không phải ảnh)
-            upload_result = cloudinary.uploader.upload(
-                file,
-                folder=f"user_{current_user.id}",
-                resource_type="raw",
-                public_id=f"{file.filename}_{current_user.id}",
-            )
-            untils.add_file(
-                filename=file.filename,
-                file_url=upload_result['secure_url'],
-                file_extension=file_extension,
-                public_id=upload_result['public_id'],
-                user_id=current_user.id
-                
-            )
-            return jsonify({
-                'success': True,
-                'message': 'File uploaded successfully',
-                'url': upload_result['secure_url']
-            }), 200
-        except Exception as ex:
-            return jsonify({
-                'success': False,
-                'message': 'Error uploading file: ' + str(ex)
-            }), 500 
             
 @app.route("/api/delete", methods=["POST"])
 @login_required
@@ -154,7 +114,95 @@ def delete_file():
 
     except Exception as e:
         return jsonify({"success": False, "message": f"Unexpected error: {str(e)}"}), 500
+@app.route("/encrypt-and-upload", methods=["POST"])
+def encrypt_and_upload():
+    
+    if 'file' not in request.files :
+        return jsonify(success=False, message="Lỗi up file lên server"), 400
 
+    file = request.files['file']
+    filename = request.form.get("filename")
+    
+    file_ext = request.form.get("file_extension")
 
+    if file.filename == '':
+        return jsonify(success=False, message="Không có tên file."), 400
+    
+
+    if file:
+        try:
+            # Đọc nội dung file
+            file_content = file.read()
+            
+            # Mã hóa file
+            encrypted_file = untils.encrypt_file(file_content) if file_content else None  # Mã hóa với dữ liệu tải về
+            if not encrypted_file:
+                return jsonify(success=False, message="Error encrypting file"), 500
+            
+            # Đọc nội dung file đã mã hóa vào BytesIO
+            encrypted_file_io = BytesIO(encrypted_file)
+            
+            # Upload file đã giải mã lên Cloudinary
+            upload_result = cloudinary.uploader.upload(
+                encrypted_file_io,
+                folder=f"user_{current_user.id}",
+                resource_type="raw",
+            )
+            
+            # Thêm thông tin file vào database
+            untils.add_file(
+                filename=filename,
+                file_url=upload_result['secure_url'],
+                file_extension=file_ext,
+                public_id=upload_result['public_id'],
+                user_id=current_user.id
+                
+            )
+            
+            return jsonify({
+                'success': True,
+                'message': 'File uploaded successfully',
+                'url': upload_result['secure_url']
+            }), 200
+        except Exception as ex:
+            return jsonify({
+                'success': False,
+                'message': 'Error uploading file: ' + str(ex)
+            }), 500
+            
+
+@app.route('/decrypt-file', methods=['POST'])
+def decrypt_file():
+    data = request.get_json()
+    if not data:
+        return jsonify(success=False, message="Invalid JSON payload"), 400
+    
+    file_url = data.get('file_url')  # Lấy file_url từ JSON payload
+    print("Received file_url:", file_url)
+    if not file_url:
+        return jsonify(success=False, message="No file URL provided"), 400
+
+    try:
+        # Tải file từ URL
+        response = requests.get(file_url)
+        if response.status_code != 200:
+            return jsonify(success=False, message="Error downloading file"), 500
+        
+        encrypted_file_content = response.content
+        
+        # Giải mã file
+        decrypted_file = untils.decrypt_file(encrypted_file_content) if encrypted_file_content else None
+        if not decrypted_file:
+            return jsonify(success=False, message="Error decrypting file"), 500
+
+        # Trả file về client dưới dạng file đính kèm
+        return send_file(
+            BytesIO(decrypted_file),
+            as_attachment=True,
+            download_name="decrypted_file",
+            mimetype="application/octet-stream"
+        )
+    except Exception as ex:
+        return jsonify(success=False, message="Error decrypting file: " + str(ex)), 500
 if __name__ == '__main__':
     app.run(debug=True)
