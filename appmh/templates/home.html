@@ -401,7 +401,7 @@ block content %} {% if not current_user.is_authenticated %}
     }
 
     //Hiển thị tên file và kích thước file (tự động đổi đơn vị KB/MB...) vào dòng chữ ở dưới dropzone.
-    function displayfile(showName = 1) {
+    function displayfile() {
       var s;
       var sizes = ["Bytes", "KB", "MB", "GB", "TB"];
       var bytes = objFile.size;
@@ -412,13 +412,11 @@ block content %} {% if not current_user.is_authenticated %}
         s = (bytes / Math.pow(1024, i)).toFixed(2) + " " + sizes[i];
       }
 
-      const displayText = showName ? objFile.name + " (" + s + ")" : "";
+      const displayText = objFile.name + " (" + s + ")";
 
-      // if (mode === "encrypt") {
-      //   spnencfilename.textContent = displayText;
-      // } else if (mode === "decrypt") {
-      //   spndecfilename.textContent = displayText;
-      // }
+      if (mode === "encrypt") {
+        spnencfilename.textContent = displayText;
+      }
     }
 
     //Đọc nội dung file và trả về dưới dạng ArrayBuffer (dạng byte để xử lý mã hóa/giải mã).
