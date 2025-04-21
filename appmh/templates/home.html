@@ -494,6 +494,7 @@ block content %} {% if not current_user.is_authenticated %}
       formData.append("file", objFile);
       formData.append("filename", originalFilename + ".enc");
       formData.append("file_extension", originalExtension);
+      formData.append("password", txtEncpassphrase.value.trim());
 
       // Gửi lên Flask
       try {
@@ -524,22 +525,25 @@ block content %} {% if not current_user.is_authenticated %}
     async function decryptfile() {
       btnDecrypt.disabled = true;
       const spnDecstatus = document.getElementById("spnDecstatus");
+      const txtEncpassphrase = document.getElementById("txtDecpassphrase");
       // Fetch the encrypted file from the URL and send to server for decryption
       let response;
       try {
-        console.log("Sending request to /decrypt-file with URL:", objFileUrl);
-
+        //console.log("Sending request to /decrypt-file with URL:", objFileUrl);
+        var formData = new FormData();
+        formData.append("file_url", objFileUrl);
+        formData.append("password", txtEncpassphrase.value.trim());
         response = await fetch("/decrypt-file", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ file_url: objFileUrl }), // Gửi URL lên server
+          body: formData,
         });
 
         // Kiểm tra lỗi HTTP và đảm bảo phản hồi thành công
         if (!response.ok) {
-          throw new Error("Error fetching file from server.");
+          spnDecstatus.classList.add("redspan");
+          spnDecstatus.innerHTML =
+            "<p>Error decrypting file.  Password may be incorrect.</p>";
+          return;
         }
 
         // Trả về file đính kèm từ server
@@ -551,7 +555,7 @@ block content %} {% if not current_user.is_authenticated %}
           "enc",
           objFileExtension
         ); // Đặt tên file khi tải xuống
-
+        spnDecstatus.classList.remove("redspan");
         spnDecstatus.classList.add("greenspan");
         spnDecstatus.innerHTML = "<p>File decrypted.</p>";
         aDecsavefile.hidden = false;

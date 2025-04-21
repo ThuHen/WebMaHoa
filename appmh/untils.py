@@ -5,9 +5,6 @@ from Crypto.Cipher import AES
 from Crypto.Protocol.KDF import PBKDF2
 from Crypto.Random import get_random_bytes
 
-# Khóa và IV cố định (ví dụ: khóa 32 byte và IV 16 byte)
-FIXED_KEY = b"thisisaverysecurekey12345678901234"  # 32 byte khóa cố định
-FIXED_IV = b"thisisaninitialvector"  # 16 byte IV cố định
 
 def add_user(username, password):
     # Mã hóa mật khẩu
@@ -59,11 +56,11 @@ def delete_file(file):
         db.session.commit()
         return True
     return False
-# Định nghĩa passphrase cố định
-FIXED_PASSPHRASE = "myfixedsecretpassphrase"
-def encrypt_file(plaintext: bytes) -> bytes:
+
+def encrypt_file(plaintext: bytes, password) -> bytes:
+    passphrasebytes = password.encode()  # Chuyển mật khẩu sang mảng byte
     salt = get_random_bytes(8)  # 8 byte salt
-    key_iv = PBKDF2(FIXED_PASSPHRASE, salt, dkLen=48, count=10000)  # 32 byte key + 16 byte IV
+    key_iv = PBKDF2(passphrasebytes, salt, dkLen=48, count=10000)  # 32 byte key + 16 byte IV
     key = key_iv[:32]
     iv = key_iv[32:]
 
@@ -77,7 +74,7 @@ def encrypt_file(plaintext: bytes) -> bytes:
     return b"Salted__" + salt + encrypted  # Chuẩn OpenSSL: b"Salted__" + salt + ciphertext
 
 pbkdf2iterations = 10000  # Số vòng lặp của PBKDF2
-def decrypt_file(cipherbytes: bytes):
+def decrypt_file(cipherbytes: bytes, password) -> bytes:
     # Đảm bảo dữ liệu đầu vào là bytes
     if not isinstance(cipherbytes, bytes):
         raise ValueError("Input must be a bytes object.")
@@ -90,7 +87,7 @@ def decrypt_file(cipherbytes: bytes):
     pbkdf2salt = cipherbytes[8:16]
 
     # Tạo passphrase key từ passphrase cố định
-    passphrasebytes = FIXED_PASSPHRASE.encode()
+    passphrasebytes = password.encode()  # Chuyển mật khẩu sang mảng byte
 
     # Dùng PBKDF2 để tạo key (32 byte) và IV (16 byte)
     key_iv = PBKDF2(passphrasebytes, pbkdf2salt, dkLen=48, count=pbkdf2iterations)
@@ -107,7 +104,10 @@ def decrypt_file(cipherbytes: bytes):
     decrypted = cipher.decrypt(ciphertext)
 
     # Loại bỏ padding kiểu PKCS#7
+    # Loại bỏ padding kiểu PKCS#7
     pad_len = decrypted[-1]
+    if pad_len < 1 or pad_len > 16:
+        raise ValueError("Sai padding. Có thể mật khẩu sai hoặc dữ liệu bị lỗi.")
     plaintext = decrypted[:-pad_len]
 
     return plaintext

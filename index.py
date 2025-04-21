@@ -124,6 +124,7 @@ def encrypt_and_upload():
     filename = request.form.get("filename")
     
     file_ext = request.form.get("file_extension")
+    password = request.form.get("password")
 
     if file.filename == '':
         return jsonify(success=False, message="Không có tên file."), 400
@@ -135,7 +136,7 @@ def encrypt_and_upload():
             file_content = file.read()
             
             # Mã hóa file
-            encrypted_file = untils.encrypt_file(file_content) if file_content else None  # Mã hóa với dữ liệu tải về
+            encrypted_file = untils.encrypt_file(file_content, password) if file_content else None  # Mã hóa với dữ liệu tải về
             if not encrypted_file:
                 return jsonify(success=False, message="Error encrypting file"), 500
             
@@ -173,11 +174,12 @@ def encrypt_and_upload():
 
 @app.route('/decrypt-file', methods=['POST'])
 def decrypt_file():
-    data = request.get_json()
-    if not data:
-        return jsonify(success=False, message="Invalid JSON payload"), 400
-    
-    file_url = data.get('file_url')  # Lấy file_url từ JSON payload
+    file_url = request.form.get('file_url')
+    if not file_url:
+        return jsonify(success=False, message="No file URL provided"), 400
+    password = request.form.get('password')
+    if not password:
+        return jsonify(success=False, message="No password provided"), 400
     print("Received file_url:", file_url)
     if not file_url:
         return jsonify(success=False, message="No file URL provided"), 400
@@ -191,7 +193,7 @@ def decrypt_file():
         encrypted_file_content = response.content
         
         # Giải mã file
-        decrypted_file = untils.decrypt_file(encrypted_file_content) if encrypted_file_content else None
+        decrypted_file = untils.decrypt_file(encrypted_file_content, password) if encrypted_file_content else None
         if not decrypted_file:
             return jsonify(success=False, message="Error decrypting file"), 500
 
